@@ -3,6 +3,7 @@ package kr.megaptera.backendsurvivalweek10.models;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.security.core.userdetails.User;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -14,6 +15,10 @@ import java.util.Optional;
 public class Cart {
     @EmbeddedId
     private CartId cartId;
+
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "user_id"))
+    private UserId userId;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "cart_id")
@@ -33,6 +38,10 @@ public class Cart {
         this.cartId = cartId;
     }
 
+    public Cart(CartId cartId, UserId userId) {
+        this.cartId = cartId;
+        this.userId = userId;
+    }
     public Cart(CartId cartId, List<LineItem> lineItems) {
         this.cartId = cartId;
         this.lineItems = lineItems;

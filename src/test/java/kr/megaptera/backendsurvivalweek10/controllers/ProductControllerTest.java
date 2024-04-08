@@ -2,7 +2,7 @@ package kr.megaptera.backendsurvivalweek10.controllers;
 
 import kr.megaptera.backendsurvivalweek10.application.product.CreateProductService;
 import kr.megaptera.backendsurvivalweek10.application.product.GetProductListService;
-import kr.megaptera.backendsurvivalweek10.dtos.ProductListDto;
+import kr.megaptera.backendsurvivalweek10.dtos.product.ProductListDto;
 import kr.megaptera.backendsurvivalweek10.models.Money;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,7 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(ProductController.class)
 @ActiveProfiles("test")
-class ProductControllerTest {
+class ProductControllerTest extends ControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
@@ -43,13 +43,14 @@ class ProductControllerTest {
         given(getProductListService.getProductListDto()).willReturn(
             new ProductListDto(List.of(productDto)));
 
-        mockMvc.perform(get("/products"))
+        mockMvc.perform(get("/products")
+                .header("Authorization", "Bearer" + userAccessToken))
             .andExpect(status().isOk())
             .andExpect(contentContains("제품"));
     }
 
     @Test
-    @DisplayName("POST /products")
+    @DisplayName("POST /products - when the current user is ROLE_ADMIN")
     void create() throws Exception {
         String json = String.format(
             """
@@ -62,11 +63,32 @@ class ProductControllerTest {
         );
 
         mockMvc.perform(post("/products")
+                        .header("Authorization", "Bearer" + adminAccessToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
             .andExpect(status().isCreated());
 
         verify(createProductService)
             .createProduct("멋진 제품", new Money(100_000L));
+    }
+
+    @Test
+    @DisplayName("POST /products - when the current user is ROLE_USER")
+    void createWithRoleUSER() throws Exception {
+        String json = String.format(
+                """
+                    {
+                        "name": "멋진 제품",
+                        "price": %d
+                    }
+                    """,
+                100_000L
+        );
+
+        mockMvc.perform(post("/products")
+                        .header("Authorization", "Bearer " + userAccessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isForbidden());
     }
 }
